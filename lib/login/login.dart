@@ -1,7 +1,12 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:sample_1/homeScreen.dart';
+import 'package:flutter/services.dart';
 import 'package:sample_1/login/signup.dart';
+import 'package:sample_1/login/verification.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);
@@ -14,6 +19,7 @@ class _LoginState extends State<Login> {
   var mobileNumber = TextEditingController();
   var password = TextEditingController();
   late Map<String, dynamic> user;
+  bool passwordVisible = false;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -40,6 +46,7 @@ class _LoginState extends State<Login> {
                   children: [
                     TextFormField(
                       controller: mobileNumber,
+                      keyboardType: TextInputType.number,
                       autofocus: true,
                       decoration: InputDecoration(
                         border: OutlineInputBorder(
@@ -57,7 +64,7 @@ class _LoginState extends State<Login> {
                     ),
                     Center(
                       child: TextFormField(
-                        obscureText: true,
+                        obscureText: !passwordVisible,
                         controller: password,
                         autofocus: true,
                         decoration: InputDecoration(
@@ -67,6 +74,16 @@ class _LoginState extends State<Login> {
                           prefixIcon: const Icon(
                             Icons.password,
                             color: Colors.blue,
+                          ),
+                          suffixIcon: IconButton(
+                            icon: Icon(passwordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off),
+                            onPressed: () {
+                              setState(() {
+                                passwordVisible = !passwordVisible;
+                              });
+                            },
                           ),
                           hintText: 'Password',
                         ),
@@ -119,8 +136,10 @@ class _LoginState extends State<Login> {
         user = snapShort.docs[0].data();
         print(user);
         if (password.text == user['Password']) {
+          SharedPreferences number = await SharedPreferences.getInstance();
+          await number.setString('forotp', user["Number"]);
           Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const HomeScrren()));
+              MaterialPageRoute(builder: (context) => const Otp()));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             behavior: SnackBarBehavior.floating,
@@ -141,6 +160,4 @@ class _LoginState extends State<Login> {
       }
     });
   }
-
-  void errorMessage() {}
 }
