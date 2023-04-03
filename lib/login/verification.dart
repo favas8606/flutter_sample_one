@@ -1,4 +1,6 @@
-// ignore_for_file: prefer_function_declarations_over_variables, non_constant_identifier_names, avoid_print
+// ignore_for_file: prefer_function_declarations_over_variables, non_constant_identifier_names, avoid_print, library_private_types_in_public_api
+
+import 'dart:html';
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -14,7 +16,7 @@ class Otp extends StatefulWidget {
 class _OtpState extends State<Otp> {
   FirebaseAuth auth = FirebaseAuth.instance;
   late final String? mobile;
-
+  late String otp;
   @override
   void initState() {
     getNumber();
@@ -168,6 +170,7 @@ class _OtpState extends State<Otp> {
           onChanged: (value) {
             if (value.length == 1 && last == false) {
               FocusScope.of(context).nextFocus();
+              otp = otp + value;
             }
             if (value.isEmpty && first == false) {
               FocusScope.of(context).previousFocus();
@@ -211,24 +214,40 @@ class _OtpState extends State<Otp> {
     };
     final PhoneVerificationFailed verificationFailed =
         (FirebaseAuthException exception) {
-      print("error ${exception.message}");
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        behavior: SnackBarBehavior.floating,
+        content: Text(
+          'Some eroor occured ${exception.message}',
+        ),
+        duration: const Duration(seconds: 3),
+        backgroundColor: Colors.red,
+      ));
+      // print("error ${exception.message}");
+    };
+    final PhoneCodeSent codeSent =
+        (String verificationId, [int? forceResendingToken]) async {
+      String smsCode = '0000';
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+          verificationId: verificationId, smsCode: smsCode);
+      print(credential); // Handle code sent
     };
 
     await auth.verifyPhoneNumber(
-        phoneNumber: '+91$mobile',
-        timeout: const Duration(minutes: 2),
+        phoneNumber: '+918606336248',
+        timeout: const Duration(minutes: 20),
         verificationCompleted: verificationCompleted,
         verificationFailed: verificationFailed,
-        codeSent: (String verificationId, int? resendToken) async {
-          // Update the UI - wait for the user to enter the SMS code
-          String smsCode = '0000';
+        codeSent: codeSent,
+        //(String verificationId, int? resendToken) async {
+        //   // Update the UI - wait for the user to enter the SMS code
+        //   String smsCode = '0000';
 
-          // Create a PhoneAuthCredential with the code
-          PhoneAuthCredential credential = PhoneAuthProvider.credential(
-              verificationId: verificationId, smsCode: smsCode);
-          print(credential);
-          // Sign the user in (or link) with the credential
-        },
+        //   // Create a PhoneAuthCredential with the code
+        //   PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        //       verificationId: verificationId, smsCode: smsCode);
+        //   print(credential);
+        // Sign the user in (or link) with the credential
+        // },
         codeAutoRetrievalTimeout: (String verificationId) {
           print('OTP timeout for $mobile');
         });
