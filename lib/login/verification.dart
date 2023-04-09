@@ -1,9 +1,8 @@
 // ignore_for_file: prefer_function_declarations_over_variables, non_constant_identifier_names, avoid_print, library_private_types_in_public_api
 
-import 'dart:html';
-
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:sample_1/homeScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Otp extends StatefulWidget {
@@ -104,7 +103,7 @@ class _OtpState extends State<Otp> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: saveData,
                         style: ButtonStyle(
                           foregroundColor:
                               MaterialStateProperty.all<Color>(Colors.white),
@@ -238,18 +237,20 @@ class _OtpState extends State<Otp> {
         verificationCompleted: verificationCompleted,
         verificationFailed: verificationFailed,
         codeSent: codeSent,
-        //(String verificationId, int? resendToken) async {
-        //   // Update the UI - wait for the user to enter the SMS code
-        //   String smsCode = '0000';
-
-        //   // Create a PhoneAuthCredential with the code
-        //   PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        //       verificationId: verificationId, smsCode: smsCode);
-        //   print(credential);
-        // Sign the user in (or link) with the credential
-        // },
         codeAutoRetrievalTimeout: (String verificationId) {
           print('OTP timeout for $mobile');
         });
+  }
+
+  void saveData() async {
+    SharedPreferences login = await SharedPreferences.getInstance();
+    await login.setBool("login", true);
+    navigateToHomePage();
+  }
+
+  void navigateToHomePage() {
+    Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const HomeScrren()),
+        (route) => false);
   }
 }
