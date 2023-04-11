@@ -18,12 +18,13 @@ class _OtpState extends State<Otp> {
    late bool isloading ;
    late String verificationId;
    late String phoneNumber;
-   late int forceResendingToken;
+  //  late int forceResendingToken;
    late String otpCode;
     
 
   @override
   void initState() {
+    onVerifyPhoneNumber();
     super.initState();
   }
 
@@ -31,9 +32,9 @@ class _OtpState extends State<Otp> {
   Widget build(BuildContext context) {
      final  routeArgs =
         ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    verificationId = routeArgs['verificationId'];
+    // verificationId = routeArgs['verificationId'];
     phoneNumber = routeArgs['phoneNumber'];
-    forceResendingToken = routeArgs['forceResendingToken'];
+    // forceResendingToken = routeArgs['forceResendingToken'];
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xfff7f6fb),
@@ -213,12 +214,9 @@ Future<void> signInwithOTP() async {
       final UserCredential userCredential =
           await auth.signInWithCredential(credential);
       final User user = userCredential.user!;
-      // Check if the user entered the correct OTP
       final IdTokenResult idTokenResult = await user.getIdTokenResult(true);
       final String token = idTokenResult.token!;
-      // await storage.write('token', token);
-      // Check if the user exists or not
-      // await checkUserExistsORnot(token, forceResendingToken);
+    
       saveData();
     } catch (e) {
    
@@ -245,4 +243,51 @@ Future<void> signInwithOTP() async {
         MaterialPageRoute(builder: (context) => const AddminMaillSend()),
         (route) => false);
   }
-}
+  Future<void> onVerifyPhoneNumber() async {
+    bool isFinished = false;
+    
+      log('valid');
+      isloading = true;
+      // ignore: always_specify_types
+      await Future.delayed(const Duration(seconds: 1));
+      try {
+   
+         final FirebaseAuth auth = FirebaseAuth.instance;
+        log('get started try');
+        await auth
+            .verifyPhoneNumber(
+          phoneNumber: phoneNumber,
+          timeout: const Duration(seconds: 60),
+          verificationCompleted: (PhoneAuthCredential authCredential) async {},
+          verificationFailed: (FirebaseAuthException authException) {
+            log('Phone number verification failed. Code: ${authException.code}. Message: ${authException.message}');
+          },
+          
+          codeSent: (String verificationId, [int? forceResendingToken]) {
+            log('force resending token $forceResendingToken');
+            log('code sent');
+            var verificationid = verificationId;
+            log(phoneNumber);
+         
+
+                           isFinished = true;
+          },
+          
+          codeAutoRetrievalTimeout: (String verificationId) {
+            log('verificationId  $verificationId');
+            log('Timwout');
+            log('Phone code auto-retrieval timed out. Verification ID: $verificationId');
+          },
+        )
+            .catchError((dynamic e) {
+          log('catch err get started $e');
+        });
+
+      
+        isloading = false;
+      } catch (e) {
+        log('get started verify catch $e');
+      }
+    }
+  }
+

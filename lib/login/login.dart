@@ -188,62 +188,17 @@ class _LoginState extends State<Login> {
       isloading = true;
       // ignore: always_specify_types
       await Future.delayed(const Duration(seconds: 1));
-      try {
+    
         final String phoneNumber = '+$selectedCountry${mobileNumber.text}';
-        final FirebaseAuth auth = FirebaseAuth.instance;
-        log('get started try');
-        await auth
-            .verifyPhoneNumber(
-          phoneNumber: phoneNumber,
-          timeout: const Duration(seconds: 60),
-          verificationCompleted: (PhoneAuthCredential authCredential) async {},
-          verificationFailed: (FirebaseAuthException authException) {
-            log('Phone number verification failed. Code: ${authException.code}. Message: ${authException.message}');
-          },
-          
-          codeSent: (String verificationId, [int? forceResendingToken]) {
-            log('force resending token $forceResendingToken');
-            log('code sent');
-            var verificationid = verificationId;
-            log(phoneNumber);
-            // Get.toNamed(
-            //   Routes.OtpField,
-            //   arguments: <dynamic>[
-            //     verificationId,
-            //     phoneNumber,
-            //     forceResendingToken
-            //   ],
-            // );
-
-  Navigator.of(context).pushNamed(
+         Navigator.of(context).pushNamed(
     'display_pg',arguments: {
-      'verificationId' :verificationId,
+      // 'verificationId' :verificationId,
       'phoneNumber' : phoneNumber,
-      'forceResendingToken' : forceResendingToken,
+      // 'forceResendingToken' : forceResendingToken,
 
   }
   );
-                          isFinished = true;
-          },
-          
-          codeAutoRetrievalTimeout: (String verificationId) {
-            log('verificationId  $verificationId');
-            log('Timwout');
-            log('Phone code auto-retrieval timed out. Verification ID: $verificationId');
-          },
-        )
-            .catchError((dynamic e) {
-          log('catch err get started $e');
-        });
-
-      
-        isloading = false;
-      } catch (e) {
-        log('get started verify catch $e');
       }
-    } else {
-      log('not valid');
-    }
   }
-  
 }
+
