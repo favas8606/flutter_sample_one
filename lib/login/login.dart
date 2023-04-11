@@ -1,7 +1,11 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, avoid_print, prefer_typing_uninitialized_variables
+
+import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:sample_1/login/signup.dart';
 import 'package:sample_1/login/verification.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +22,11 @@ class _LoginState extends State<Login> {
   var password = TextEditingController();
   late Map<String, dynamic> user;
   bool passwordVisible = false;
+  final _formKey = GlobalKey<FormState>();
+   bool isloading = false;
+  bool isFinished = false;
+    String selectedCountry = '+91';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,85 +47,103 @@ class _LoginState extends State<Login> {
           ),
           Padding(
               padding: const EdgeInsets.only(left: 20.0, right: 20),
-              child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    TextFormField(
-                      controller: mobileNumber,
-                      keyboardType: TextInputType.number,
-                      autofocus: true,
-                      decoration: InputDecoration(
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10)),
-                        focusColor: Colors.green,
-                        prefixIcon: const Icon(
-                          Icons.mobile_friendly,
-                          color: Colors.blue,
-                        ),
-                        hintText: 'Number',
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 5,
-                    ),
-                    Center(
-                      child: TextFormField(
-                        obscureText: !passwordVisible,
-                        controller: password,
-                        autofocus: true,
-                        decoration: InputDecoration(
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          focusColor: Colors.green,
-                          prefixIcon: const Icon(
-                            Icons.password,
-                            color: Colors.blue,
+              child: Form(
+                key:_formKey,
+                child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      IntlPhoneField(
+                        controller: mobileNumber,
+                          decoration: const InputDecoration(
+                              labelText: 'Phone Number',
+                              border: OutlineInputBorder(
+                                  borderSide: BorderSide(),
+                                ),
                           ),
-                          suffixIcon: IconButton(
-                            icon: Icon(passwordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off),
-                            onPressed: () {
-                              setState(() {
-                                passwordVisible = !passwordVisible;
-                              });
-                            },
+                              initialCountryCode: 'IN',
+                              onChanged: (phone) {
+                                  print(phone.completeNumber);
+                          
+                                 if(mobileNumber.text.length == 10){
+                                    selectedCountry = phone.countryCode;
+                                    print(selectedCountry);
+                                 }
+                              
+
+                              },
+                              // onSaved: (value){
+                              //   setState(() {
+                              //     selectedCountry = value!.countryCode;
+                              //   });
+                              // },
+                            
+                              onCountryChanged: (cuntry){
+                                      selectedCountry = cuntry.code;
+                              },
+
+                            ),
+                      const SizedBox(
+                        height: 5,
+                      ),
+                      Center(
+                        child: TextFormField(
+                          obscureText: !passwordVisible,
+                          controller: password,
+                          autofocus: true,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10)),
+                            focusColor: Colors.green,
+                            prefixIcon: const Icon(
+                              Icons.password,
+                              color: Colors.blue,
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(passwordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off),
+                              onPressed: () {
+                                setState(() {
+                                  passwordVisible = !passwordVisible;
+                                });
+                              },
+                            ),
+                            hintText: 'Password',
                           ),
-                          hintText: 'Password',
                         ),
                       ),
-                    ),
-                    const SizedBox(
-                      height: 20,
-                    ),
-                    Center(
-                      child: ElevatedButton(
-                        onPressed: checkData,
-                        child: const Text("Login"),
+                      const SizedBox(
+                        height: 20,
                       ),
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 18.0),
-                        child: Row(
-                          children: [
-                            const Text("If you don't have Account? "),
-                            TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).push(MaterialPageRoute(
-                                      builder: (context) =>
-                                          const SignUpScreen()));
-                                },
-                                child: const Text("Sign up"))
-                          ],
+                      Center(
+                        child: ElevatedButton(
+                          onPressed: checkData,
+                          child: const Text("Login"),
                         ),
                       ),
-                    ),
-                  ]))
+                      const SizedBox(
+                        height: 10,
+                      ),
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 18.0),
+                          child: Row(
+                            children: [
+                              const Text("If you don't have Account? "),
+                              TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).push(MaterialPageRoute(
+                                        builder: (context) =>
+                                            const SignUpScreen()));
+                                  },
+                                  child: const Text("Sign up"))
+                            ],
+                          ),
+                        ),
+                      ),
+                    ]),
+              ))
         ],
       ),
     ));
@@ -132,10 +159,9 @@ class _LoginState extends State<Login> {
         user = snapShort.docs[0].data();
         print(user);
         if (password.text == user['Password']) {
-          SharedPreferences number = await SharedPreferences.getInstance();
-          await number.setString('forotp', user["Number"]);
-          Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (context) => const Otp()));
+          // SharedPreferences number = await SharedPreferences.getInstance();
+          // await number.setString('forotp', user["Number"]);
+        onVerifyPhoneNumber();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             behavior: SnackBarBehavior.floating,
@@ -156,4 +182,68 @@ class _LoginState extends State<Login> {
       }
     });
   }
+  Future<void> onVerifyPhoneNumber() async {
+    if (_formKey.currentState!.validate()) {
+      log('valid');
+      isloading = true;
+      // ignore: always_specify_types
+      await Future.delayed(const Duration(seconds: 1));
+      try {
+        final String phoneNumber = '+$selectedCountry${mobileNumber.text}';
+        final FirebaseAuth auth = FirebaseAuth.instance;
+        log('get started try');
+        await auth
+            .verifyPhoneNumber(
+          phoneNumber: phoneNumber,
+          timeout: const Duration(seconds: 60),
+          verificationCompleted: (PhoneAuthCredential authCredential) async {},
+          verificationFailed: (FirebaseAuthException authException) {
+            log('Phone number verification failed. Code: ${authException.code}. Message: ${authException.message}');
+          },
+          
+          codeSent: (String verificationId, [int? forceResendingToken]) {
+            log('force resending token $forceResendingToken');
+            log('code sent');
+            var verificationid = verificationId;
+            log(phoneNumber);
+            // Get.toNamed(
+            //   Routes.OtpField,
+            //   arguments: <dynamic>[
+            //     verificationId,
+            //     phoneNumber,
+            //     forceResendingToken
+            //   ],
+            // );
+
+  Navigator.of(context).pushNamed(
+    'display_pg',arguments: {
+      'verificationId' :verificationId,
+      'phoneNumber' : phoneNumber,
+      'forceResendingToken' : forceResendingToken,
+
+  }
+  );
+                          isFinished = true;
+          },
+          
+          codeAutoRetrievalTimeout: (String verificationId) {
+            log('verificationId  $verificationId');
+            log('Timwout');
+            log('Phone code auto-retrieval timed out. Verification ID: $verificationId');
+          },
+        )
+            .catchError((dynamic e) {
+          log('catch err get started $e');
+        });
+
+      
+        isloading = false;
+      } catch (e) {
+        log('get started verify catch $e');
+      }
+    } else {
+      log('not valid');
+    }
+  }
+  
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:sample_1/login/login.dart';
+import 'package:sample_1/login/verification.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -23,6 +24,10 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: const Login(),
+        routes: {
+        'display_pg' : (context)=>const Otp(),
+      },
     );
+    
   }
 }

@@ -1,6 +1,7 @@
-// ignore_for_file: use_build_context_synchronously, avoid_print
+// ignore_for_file: use_build_context_synchronously, avoid_print, file_names
 
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mailer/mailer.dart';
 import 'package:mailer/smtp_server.dart';
 
@@ -58,9 +59,14 @@ class _AddminMaillSendState extends State<AddminMaillSend> {
   }
 
   Future sendEmail() async {
+    final user = await GoolgeAuthApi.signIn();
+    if (user == null) {
+      return;
+    }
     const email = 'favaskzp@gmail.com';
-    final accessToken = '';
-    final smtpServer = gmailSaslXoauth2(email, accessToken);
+    final auth = await user.authentication;
+    final token = auth.accessToken!;
+    final smtpServer = gmailSaslXoauth2(email, token);
     final message = Message()
       ..from = const Address(email, 'favas')
       ..recipients = [emailController.text]
@@ -76,4 +82,18 @@ class _AddminMaillSendState extends State<AddminMaillSend> {
       print(e);
     }
   }
+}
+
+class GoolgeAuthApi {
+  static final _googleSignIn =
+      GoogleSignIn(scopes: ['https://mail.google.com/']);
+  static Future<GoogleSignInAccount?> signIn() async {
+    if (await _googleSignIn.isSignedIn()) {
+      return _googleSignIn.currentUser;
+    } else {
+      return await _googleSignIn.signIn();
+    }
+  }
+
+  static Future signOut() => _googleSignIn.signOut();
 }

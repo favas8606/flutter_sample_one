@@ -2,9 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:sample_1/homeScreen.dart';
+import 'package:sample_1/EmailSender.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
+import 'dart:developer';
 class Otp extends StatefulWidget {
   const Otp({Key? key}) : super(key: key);
 
@@ -15,21 +15,31 @@ class Otp extends StatefulWidget {
 class _OtpState extends State<Otp> {
   FirebaseAuth auth = FirebaseAuth.instance;
   late final String? mobile;
-  late String otp;
+   late bool isloading ;
+   late String verificationId;
+   late String phoneNumber;
+   late int forceResendingToken;
+   late String otpCode;
+    
+
   @override
   void initState() {
-    getNumber();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+     final  routeArgs =
+        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+    verificationId = routeArgs['verificationId'];
+    phoneNumber = routeArgs['phoneNumber'];
+    forceResendingToken = routeArgs['forceResendingToken'];
     return Scaffold(
       resizeToAvoidBottomInset: false,
       backgroundColor: const Color(0xfff7f6fb),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 32),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
           child: ListView(
             children: [
               Align(
@@ -46,15 +56,7 @@ class _OtpState extends State<Otp> {
               const SizedBox(
                 height: 18,
               ),
-              Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple.shade50,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Image.network(
-                      'https://raw.githubusercontent.com/julvikramsupandi/flutter-otp-verification-ui/main/assets/images/illustration-3.png')),
+           
               const SizedBox(
                 height: 24,
               ),
@@ -81,7 +83,7 @@ class _OtpState extends State<Otp> {
                 height: 28,
               ),
               Container(
-                padding: const EdgeInsets.all(28),
+                padding: const EdgeInsets.only(top:28, bottom: 10),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
@@ -94,11 +96,13 @@ class _OtpState extends State<Otp> {
                         _textFieldOTP(first: true, last: false),
                         _textFieldOTP(first: false, last: false),
                         _textFieldOTP(first: false, last: false),
+                        _textFieldOTP(first: false, last: false),
+                        _textFieldOTP(first: false, last: false),
                         _textFieldOTP(first: false, last: true),
                       ],
                     ),
                     const SizedBox(
-                      height: 22,
+                      height: 40,
                     ),
                     SizedBox(
                       width: double.infinity,
@@ -161,7 +165,8 @@ class _OtpState extends State<Otp> {
 
   Widget _textFieldOTP({bool? first, last}) {
     return SizedBox(
-      height: 50,
+      height: 70,
+      width: 50,
       child: AspectRatio(
         aspectRatio: 1.0,
         child: TextField(
@@ -169,7 +174,7 @@ class _OtpState extends State<Otp> {
           onChanged: (value) {
             if (value.length == 1 && last == false) {
               FocusScope.of(context).nextFocus();
-              otp = otp + value;
+           
             }
             if (value.isEmpty && first == false) {
               FocusScope.of(context).previousFocus();
@@ -195,52 +200,39 @@ class _OtpState extends State<Otp> {
     );
   }
 
-  void getNumber() async {
-    SharedPreferences number = await SharedPreferences.getInstance();
-    mobile = number.getString('forotp');
-    print(mobile);
-    otpCreation();
-  }
 
-  void otpCreation() async {
-    final PhoneVerificationCompleted verificationCompleted =
-        (AuthCredential credential) async {
-      await auth.signInWithCredential(credential);
-      setState(() {
-        print("Verification");
-        print(credential);
-      });
-    };
-    final PhoneVerificationFailed verificationFailed =
-        (FirebaseAuthException exception) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+Future<void> signInwithOTP() async {
+    log('sign in otp contr');
+    isloading = true;
+    final FirebaseAuth auth = FirebaseAuth.instance;
+    final AuthCredential credential = PhoneAuthProvider.credential(
+      verificationId: verificationId,
+      smsCode: otpCode.toString(),
+    );
+    try {
+      final UserCredential userCredential =
+          await auth.signInWithCredential(credential);
+      final User user = userCredential.user!;
+      // Check if the user entered the correct OTP
+      final IdTokenResult idTokenResult = await user.getIdTokenResult(true);
+      final String token = idTokenResult.token!;
+      // await storage.write('token', token);
+      // Check if the user exists or not
+      // await checkUserExistsORnot(token, forceResendingToken);
+      saveData();
+    } catch (e) {
+   
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Invalid Otp'),
         behavior: SnackBarBehavior.floating,
-        content: Text(
-          'Some eroor occured ${exception.message}',
-        ),
-        duration: const Duration(seconds: 3),
-        backgroundColor: Colors.red,
-      ));
-      // print("error ${exception.message}");
-    };
-    final PhoneCodeSent codeSent =
-        (String verificationId, [int? forceResendingToken]) async {
-      String smsCode = '0000';
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
-          verificationId: verificationId, smsCode: smsCode);
-      print(credential); // Handle code sent
-    };
-
-    await auth.verifyPhoneNumber(
-        phoneNumber: '+918606336248',
-        timeout: const Duration(minutes: 20),
-        verificationCompleted: verificationCompleted,
-        verificationFailed: verificationFailed,
-        codeSent: codeSent,
-        codeAutoRetrievalTimeout: (String verificationId) {
-          print('OTP timeout for $mobile');
-        });
+        duration: Duration(seconds: 4),
+        
+        ));
+      log('Invalid OTP');
+      isloading = false;
+    }
   }
+
 
   void saveData() async {
     SharedPreferences login = await SharedPreferences.getInstance();
@@ -250,7 +242,7 @@ class _OtpState extends State<Otp> {
 
   void navigateToHomePage() {
     Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const HomeScrren()),
+        MaterialPageRoute(builder: (context) => const AddminMaillSend()),
         (route) => false);
   }
 }
